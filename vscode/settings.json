@@ -1,0 +1,11 @@
+{
+  "editor.formatOnSave": false,
+  "editor.formatOnPaste": false,
+  "editor.formatOnType": false,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.autoIndent": "none",
+  "files.trimTrailingWhitespace": false,
+  "files.insertFinalNewline": false
+}
