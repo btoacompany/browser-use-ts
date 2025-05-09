@@ -1,19 +1,24 @@
 /**
  * browser-use-ts
- * 
+ *
  * TypeScript port of browser-use - a framework for building autonomous browser agents
- * 
+ *
  * @copyright Pankil Joshi
  * @license MIT
  */
 
 // Export browser modules
 export { Browser, BrowserConfig } from './browser/browser';
-export { BrowserContext, BrowserContextConfig, BrowserContextState, BrowserSession } from './browser/context';
-export { BrowserState, BrowserStateHistory, TabInfo, BrowserError, URLNotAllowedError } from './browser/views';
+export { BrowserContext, BrowserContextConfig, BrowserSession } from './browser/context';
+
+export type { BrowserContextState } from './browser/context';
+
+export { BrowserState, BrowserStateHistory, BrowserError, URLNotAllowedError } from './browser/views';
+export type { TabInfo } from './browser/views';
 
 // Export DOM modules
-export { DOMElementNode, DOMHistoryElement, SelectorMap, DOMState } from './dom/views';
+export { DOMElementNode, DOMHistoryElement, DOMState } from './dom/views';
+export type { SelectorMap } from './dom/views';
 export { DOMService } from './dom/service';
 
 // Export Agent modules

@@ -22,6 +22,7 @@ module.exports = {
     '@typescript-eslint/no-*': 'off',
     'no-*': 'off',
   },
+
   // This ignores all linting for the entire directory
   ignorePatterns: ['**/*'],
 };
