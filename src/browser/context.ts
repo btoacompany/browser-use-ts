@@ -1142,7 +1142,10 @@ export class BrowserContext {
       
       // Try direct click as per Python implementation
       try {
-        return await performClick(() => elementHandle.click({ timeout: 1500 }));
+        // return await performClick(() => elementHandle.click({ timeout: 1500 }));
+
+        // CUSTOM IMPLEMENTATION USING DISPATCH EVENT
+        return await performClick(() => elementHandle.dispatchEvent('click'));
       } catch (standardError) {
         // If URL not allowed error, rethrow it
         if (standardError instanceof Error && standardError.message.includes('URL not allowed')) {

@@ -19,7 +19,16 @@ export class DOMService {
     // Read the JS code from the file
     try {
       // Use an absolute path for more reliability
-      const jsPath = join(process.cwd(), 'src', 'dom', 'buildDomTree.js');
+      // const jsPath = join(process.cwd(), 'src', 'dom', 'buildDomTree.js');
+      const jsPath = join(
+        process.cwd(),
+        'src',
+        'lib',
+        'browser-use-ts',
+        'src',
+        'dom',
+        'buildDomTree.js',
+      );
       this.jsCode = readFileSync(jsPath, 'utf-8');
       
       if (!this.jsCode || this.jsCode.trim() === '') {

@@ -18,6 +18,57 @@
     current: null
   };
 
+  // be-custom some parts of the code
+
+  function _customIsInteractiveElement(element) {
+    const elementId = element.getAttribute('id');
+    if (elementId) {
+      if (elementId.includes('submit')) {
+        return true;
+      }
+    }
+  }
+
+  function _customCheckInteractivityNode(node, nodeData, parentIframe) {
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+
+    // Check if the node is a checkbox input
+    if (nodeData.tagName === 'input' && nodeData.attributes.type === 'checkbox' && !nodeData.isVisible) {
+      nodeData.isInteractive = true;
+      nodeData.isTopElement = isTopElement(node.parentNode);
+      nodeData.isInteractive = isInteractiveElement(node.parentNode);
+      nodeData.isInViewport = nodeData.isInteractive;
+      nodeData.highlightIndex = highlightIndex++;
+
+      // Use parent node's xpath if parent exists
+      if (node.parentNode) {
+        nodeData.xpath = getXPathTree(node.parentNode, true);
+      }
+
+      if (doHighlightElements) {
+        // Highlight parent node instead of checkbox
+        const elementToHighlight = node.parentNode || node;
+
+        if (focusHighlightIndex >= 0) {
+          if (focusHighlightIndex === nodeData.highlightIndex) {
+            highlightElement(elementToHighlight, nodeData.highlightIndex, parentIframe);
+          }
+        } else {
+          highlightElement(elementToHighlight, nodeData.highlightIndex, parentIframe);
+        }
+      }
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  // end of be-custom some parts of the code
+
   function pushTiming(type) {
     TIMING_STACK[type] = TIMING_STACK[type] || [];
     TIMING_STACK[type].push(performance.now());
@@ -573,6 +624,11 @@
       return true;
     }
 
+    // CUSTOM HANDLE SOME SPECIAL CASES
+    if (_customIsInteractiveElement(element)) {
+      return true;
+    }
+
     // Get computed style
     const style = window.getComputedStyle(element);
 
@@ -923,6 +979,8 @@
         }
       }
     }
+
+    _customCheckInteractivityNode(node, nodeData, parentIframe)
 
     // Process children, with special handling for iframes and rich text editors
     if (node.tagName) {
