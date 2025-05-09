@@ -1142,7 +1142,10 @@ export class BrowserContext {
       
       // Try direct click as per Python implementation
       try {
-        return await performClick(() => elementHandle.click({ timeout: 1500 }));
+        // return await performClick(() => elementHandle.click({ timeout: 1500 }));
+
+        // CUSTOM IMPLEMENTATION USING DISPATCH EVENT
+        return await performClick(() => elementHandle.dispatchEvent('click'));
       } catch (standardError) {
         // If URL not allowed error, rethrow it
         if (standardError instanceof Error && standardError.message.includes('URL not allowed')) {
@@ -1172,9 +1175,29 @@ export class BrowserContext {
     }
   }
 
+  async getElementByXPath(xpath: string): Promise<any> {
+    const page = await this.getCurrentPage();
+    try {
+      // Use Playwright's built-in xpath selector
+      const element = await page.$(`xpath=${xpath}`);
+      if (!element) {
+        throw new Error(`Element not found for xpath: ${xpath}`);
+      }
+      return element;
+    } catch (error) {
+      console.error(`Error finding element by xpath: ${xpath}`, error);
+      return null;
+    }
+  }
+
   async getLocateElement(element: any): Promise<any> {
     if (!element) {
       return null;
+    }
+
+    if (element.xpath) {
+      const domElement = await this.getElementByXPath(element.xpath);
+      return domElement;
     }
 
     let currentFrame = await this.getCurrentPage();

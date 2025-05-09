@@ -83,3 +83,6 @@ This project is licensed under the same license as the original browser-use proj
 
 - Original [browser-use](https://github.com/browser-use/browser-use) creators for the Python implementation
 - [Vadavision](https://www.vadavision.com) for supporting the initiative
+
+# IDE
+Copy vscode to .vscode (and custom any if you want)
