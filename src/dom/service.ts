@@ -15,22 +15,20 @@ export class DOMService {
 
   constructor(page: any) {
     this.page = page;
-    
+
     // Read the JS code from the file
     try {
       // Use an absolute path for more reliability
       // const jsPath = join(process.cwd(), 'src', 'dom', 'buildDomTree.js');
       const jsPath = join(
         process.cwd(),
-        'src',
-        'lib',
         'browser-use-ts',
         'src',
         'dom',
         'buildDomTree.js',
       );
       this.jsCode = readFileSync(jsPath, 'utf-8');
-      
+
       if (!this.jsCode || this.jsCode.trim() === '') {
         throw new Error('Empty JS file content');
       }
@@ -59,14 +57,14 @@ export class DOMService {
     viewportInfo?: ViewportInfo;
   }> {
     const [rootElement, selectorMap] = await this.buildDomTree(highlightElements, focusElement, viewportExpansion);
-    
+
     // In the Python implementation, elementTree is the same as rootElement
     // This is a key difference that was causing token count issues
     const elementTree = rootElement;
-    
+
     // Get viewport information from the page
     const viewportInfo = await this.getViewportInfo();
-    
+
     return {
       elementTree,
       rootElement,
@@ -74,7 +72,7 @@ export class DOMService {
       viewportInfo
     };
   }
-  
+
   /**
    * Get viewport information from the page
    * This is important for matching Python implementation's viewport handling
@@ -93,7 +91,7 @@ export class DOMService {
           documentWidth: document.documentElement.scrollWidth
         };
       });
-      
+
       // Create a ViewportInfo instance with data from the page
       return new ViewportInfo(
         pageData.width,
@@ -118,7 +116,7 @@ export class DOMService {
       );
     }
   }
-  
+
   // Note: The generateElementTreeString method has been removed as it's no longer needed
   // We now use the clickableElementsToString method from the DOMElementNode class instead
   // This is more aligned with the Python implementation
@@ -141,15 +139,15 @@ export class DOMService {
 
     // Execute the JavaScript code in the browser context
     const debugMode = process.env && process.env['NODE_ENV'] === 'development';
-    
+
     // Ensure viewportExpansion matches Python implementation conventions
     // -1 means include all elements regardless of viewport position (no limit)
     // Positive values indicate pixels beyond viewport boundaries to include
     // Using the same convention as Python for consistency
     const viewportExpansionValue = viewportExpansion === undefined ? 500 : viewportExpansion;
-    
+
     // Log viewport expansion for debugging
-    
+
     const args = {
       doHighlightElements: highlightElements,
       focusHighlightIndex: focusElement,
@@ -161,7 +159,7 @@ export class DOMService {
       // For testing purposes, create a mock DOM tree if we're in a test environment
       // This is intentionally a mock implementation for testing and not a shortcut
       if (process.env['NODE_ENV'] === 'test' || process.env['JEST_WORKER_ID']) {
-        
+
         // Create a comprehensive mock DOM tree for testing
         // This mock includes realistic coordinates and attributes to simulate a real DOM
         const mockDomTree = {
@@ -234,10 +232,10 @@ export class DOMService {
             }
           }
         };
-        
+
         return await this.constructDomTree(mockDomTree);
       }
-      
+
       // For real browser execution
       // Directly evaluate the buildDomTree function in the browser
       // This matches the approach used in the original Python implementation
@@ -258,16 +256,16 @@ export class DOMService {
             }
           })();
         `;
-        
+
         // Execute the evaluation script in the browser context
         const evalPage = await this.page.evaluate(evalScript);
-        
+
         // Check if there was an error during evaluation
         if (!evalPage) {
           console.error('Evaluation returned null or undefined');
           throw new Error('DOM tree evaluation returned null or undefined');
         }
-        
+
         if (evalPage.error) {
           console.error('Error in page evaluation:', evalPage.error);
           throw new Error(`Error in page evaluation: ${evalPage.error}`);
@@ -304,10 +302,10 @@ export class DOMService {
     if (!evalPage || typeof evalPage !== 'object') {
       throw new Error('Invalid evalPage object');
     }
-    
+
     const jsNodeMap = evalPage.map;
     const jsRootId = evalPage.rootId;
-    
+
     if (!jsNodeMap || !jsRootId) {
       throw new Error(`Missing required DOM tree data: map=${!!jsNodeMap}, rootId=${!!jsRootId}`);
     }
@@ -388,7 +386,7 @@ export class DOMService {
     // Extract page and viewport coordinates if available
     let pageCoordinates = null;
     let viewportCoordinates = null;
-    
+
     if (nodeData.rect) {
       // Create page coordinates from the rect data
       pageCoordinates = {
@@ -398,7 +396,7 @@ export class DOMService {
         height: nodeData.rect.height || 0
       };
     }
-    
+
     if (nodeData.viewportRect) {
       // Create viewport coordinates from the viewportRect data
       viewportCoordinates = {
@@ -408,7 +406,7 @@ export class DOMService {
         height: nodeData.viewportRect.height || 0
       };
     }
-    
+
     const elementNode = new DOMElementNode(
       nodeData.tagName,
       nodeData.xpath,
