@@ -60,10 +60,42 @@
           highlightElement(elementToHighlight, nodeData.highlightIndex, parentIframe);
         }
       }
-      
+
       return true;
     }
-    
+    // Check for other hidden inputs and highlight visible parent
+    else if (nodeData.tagName === 'input' && !nodeData.isVisible) {
+      let currentAncestor = node.parentNode;
+      let elementToHighlight = null;
+
+      while (currentAncestor && currentAncestor.nodeType === Node.ELEMENT_NODE) {
+        if (isElementVisible(currentAncestor)) {
+          elementToHighlight = currentAncestor;
+          break;
+        }
+        currentAncestor = currentAncestor.parentNode;
+      }
+
+      if (elementToHighlight) {
+        nodeData.isInteractive = true;
+        nodeData.isTopElement = isTopElement(elementToHighlight);
+        nodeData.isInViewport = true;
+        nodeData.highlightIndex = highlightIndex++;
+        nodeData.xpath = getXPathTree(elementToHighlight, true); // XPath of the visible element
+
+        if (doHighlightElements) {
+          if (focusHighlightIndex >= 0) {
+            if (focusHighlightIndex === nodeData.highlightIndex) {
+              highlightElement(elementToHighlight, nodeData.highlightIndex, parentIframe);
+            }
+          } else {
+            highlightElement(elementToHighlight, nodeData.highlightIndex, parentIframe);
+          }
+        }
+        return true; // Indicate that this node has been handled
+      }
+    }
+
     return false;
   }
 
@@ -546,7 +578,7 @@
     const interactiveElements = new Set([
       "a", "button", "details", "embed", "input", "menu", "menuitem",
       "object", "select", "textarea", "canvas", "summary", "dialog",
-      "banner"
+      "banner", "label", "span", "p"
     ]);
 
     const interactiveRoles = new Set(['button-icon', 'dialog', 'button-text-icon-only', 'treeitem', 'alert', 'grid', 'progressbar', 'radio', 'checkbox', 'menuitem', 'option', 'switch', 'dropdown', 'scrollbar', 'combobox', 'a-button-text', 'button', 'region', 'textbox', 'tabpanel', 'tab', 'click', 'button-text', 'spinbutton', 'a-button-inner', 'link', 'menu', 'slider', 'listbox', 'a-dropdown-button', 'button-icon-only', 'searchbox', 'menuitemradio', 'tooltip', 'tree', 'menuitemcheckbox']);

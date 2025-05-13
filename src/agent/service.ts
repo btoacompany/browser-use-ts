@@ -207,7 +207,7 @@ export class Agent<Context = any> {
       maxFailures = 3,
       saveConversationPathEncoding = "utf-8",
       saveConversationPath,
-      useVisionForPlanner = false,
+      useVisionForPlanner = true,
       useVision = true,
       registerExternalAgentStatusRaiseErrorCallback = async () => false,
       registerNewStepCallback = async () => Promise.resolve(),
