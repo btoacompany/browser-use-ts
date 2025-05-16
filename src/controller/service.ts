@@ -624,7 +624,8 @@ export class Controller<Context = any> {
               console.warn('Could not get current page count:', e);
             }
             
-            if (currentPageCount > initialPages) {
+            // only switch to new tab if there is no download
+            if (currentPageCount > initialPages && !downloadPath) {
               const newTabMsg = 'New tab opened - switching to it';
               msg += ` - ${newTabMsg}`;
               console.info(newTabMsg);
@@ -642,6 +643,7 @@ export class Controller<Context = any> {
             });
           } catch (e) {
             console.warn(`Element not clickable with index ${params.index} - most likely the page changed`);
+            console.trace(e);
             return new ActionResult({
               isDone: false,
               success: false,
