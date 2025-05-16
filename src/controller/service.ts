@@ -594,7 +594,8 @@ export class Controller<Context = any> {
             const msg = `Index ${params.index} - has an element which opens file upload dialog. To upload files please use a specific function to upload files`;
             console.info(msg);
             return new ActionResult({
-              isDone: true,
+              // isDone: true,
+              isDone: false,
               success: true,
               extractedContent: msg,
               includeInMemory: true,
@@ -635,7 +636,8 @@ export class Controller<Context = any> {
             // Only mark downloads as done; regular clicks should allow the agent to continue
             // This matches the Python implementation's behavior
             return new ActionResult({
-              isDone: downloadPath ? true : false,
+              // isDone: downloadPath ? true : false,
+              isDone: false,
               success: true,
               extractedContent: msg,
               includeInMemory: true,
@@ -964,7 +966,8 @@ export class Controller<Context = any> {
             console.info(msg);
             
             return new ActionResult({
-              isDone: true,
+              // isDone: true,
+              isDone: false,
               success: true,
               extractedContent: msg,
               includeInMemory: true,
