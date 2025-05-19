@@ -1118,9 +1118,9 @@ export class BrowserContext {
             return downloadPath;
           } catch (e) {
             // If no download is triggered, treat as normal click
-            if (e instanceof Error && e.message.includes('timeout')) {
+            if (e instanceof Error && (e.message.includes('Timeout') || e.message.includes('waiting for event "download"'))) {
+              console.log('No download was triggered by the click');
               await page.waitForLoadState();
-              
               // Check and handle navigation
               await this._checkAndHandleNavigation(page);
             } else {

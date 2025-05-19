@@ -24,6 +24,56 @@ import {
   GetDropdownOptionsAction,
 } from './views';
 
+const FIND_DROPDOWN_JS_CODE = `
+(xpath) => {
+  if (!xpath || typeof xpath !== 'string') {
+    return {
+      error: 'Invalid XPath expression',
+      found: false
+    };
+  }
+
+  try {
+    const select = document.evaluate(
+      xpath,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue;
+
+    if (!select) {
+      return {
+        error: 'No element found matching the XPath expression',
+        found: false
+      };
+    }
+
+    if (select.tagName.toLowerCase() !== 'select') {
+      return {
+        error: 'Found element but it is a ' + (select.tagName || 'unknown') + ', not a SELECT',
+        found: false
+      };
+    }
+
+    return {
+      id: select.id || '',
+      name: select.name || '',
+      found: true,
+      tagName: select.tagName,
+      optionCount: select.options.length,
+      currentValue: select.value,
+      availableOptions: Array.from(select.options).map(o => o.text.trim())
+    };
+  } catch (e) {
+    return {
+      error: e.toString(),
+      found: false
+    };
+  }
+}
+`
+
 /**
  * Controller class for managing browser actions
  */
@@ -594,7 +644,8 @@ export class Controller<Context = any> {
             const msg = `Index ${params.index} - has an element which opens file upload dialog. To upload files please use a specific function to upload files`;
             console.info(msg);
             return new ActionResult({
-              isDone: true,
+              // isDone: true,
+              isDone: false,
               success: true,
               extractedContent: msg,
               includeInMemory: true,
@@ -624,7 +675,8 @@ export class Controller<Context = any> {
               console.warn('Could not get current page count:', e);
             }
             
-            if (currentPageCount > initialPages) {
+            // only switch to new tab if there is no download
+            if (currentPageCount > initialPages && !downloadPath) {
               const newTabMsg = 'New tab opened - switching to it';
               msg += ` - ${newTabMsg}`;
               console.info(newTabMsg);
@@ -634,7 +686,8 @@ export class Controller<Context = any> {
             // Only mark downloads as done; regular clicks should allow the agent to continue
             // This matches the Python implementation's behavior
             return new ActionResult({
-              isDone: downloadPath ? true : false,
+              // isDone: downloadPath ? true : false,
+              isDone: false,
               success: true,
               extractedContent: msg,
               includeInMemory: true,
@@ -642,6 +695,7 @@ export class Controller<Context = any> {
             });
           } catch (e) {
             console.warn(`Element not clickable with index ${params.index} - most likely the page changed`);
+            console.trace(e);
             return new ActionResult({
               isDone: false,
               success: false,
@@ -962,7 +1016,8 @@ export class Controller<Context = any> {
             console.info(msg);
             
             return new ActionResult({
-              isDone: true,
+              // isDone: true,
+              isDone: false,
               success: true,
               extractedContent: msg,
               includeInMemory: true,
@@ -1129,34 +1184,42 @@ export class Controller<Context = any> {
                 console.debug(`Trying frame ${frameIndex} URL: ${frame.url()}`);
 
                 // First verify we can find the dropdown in this frame
+                // const findDropdownJs = `
+                //   (xpath) => {
+                //     try {
+                //       const select = document.evaluate(xpath, document, null,
+                //         XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                //       if (!select) return null;
+                //       if (select.tagName.toLowerCase() !== 'select') {
+                //         return {
+                //           error: \`Found element but it's a \${select.tagName}, not a SELECT\`,
+                //           found: false
+                //         };
+                //       }
+                //       return {
+                //         id: select.id,
+                //         name: select.name,
+                //         found: true,
+                //         tagName: select.tagName,
+                //         optionCount: select.options.length,
+                //         currentValue: select.value,
+                //         availableOptions: Array.from(select.options).map(o => o.text.trim())
+                //       };
+                //     } catch (e) {
+                //       return {error: e.toString(), found: false};
+                //     }
+                //   }
+                // `;
+
+                // const dropdownInfo = await frame.evaluate(FIND_DROPDOWN_JS_CODE, domElement.xpath);
+
                 const findDropdownJs = `
-                  (xpath) => {
-                    try {
-                      const select = document.evaluate(xpath, document, null,
-                        XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                      if (!select) return null;
-                      if (select.tagName.toLowerCase() !== 'select') {
-                        return {
-                          error: \`Found element but it's a \${select.tagName}, not a SELECT\`,
-                          found: false
-                        };
-                      }
-                      return {
-                        id: select.id,
-                        name: select.name,
-                        found: true,
-                        tagName: select.tagName,
-                        optionCount: select.options.length,
-                        currentValue: select.value,
-                        availableOptions: Array.from(select.options).map(o => o.text.trim())
-                      };
-                    } catch (e) {
-                      return {error: e.toString(), found: false};
-                    }
-                  }
+                  (${FIND_DROPDOWN_JS_CODE})('${domElement.xpath}')
                 `;
 
-                const dropdownInfo = await frame.evaluate(findDropdownJs, domElement.xpath);
+                const dropdownInfo = await frame.evaluate(findDropdownJs);
+
+                console.debug(`Dropdown info: ${JSON.stringify({dropdownInfo, xpath: domElement.xpath})}`);
 
                 if (dropdownInfo) {
                   if (!dropdownInfo.found) {
