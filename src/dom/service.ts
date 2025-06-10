@@ -421,7 +421,8 @@ export class DOMService {
       null, // parent will be set later
       viewportInfo,
       pageCoordinates,
-      viewportCoordinates
+      viewportCoordinates,
+      nodeData.textContent || ''
     );
 
     const childrenIds = nodeData.children || [];

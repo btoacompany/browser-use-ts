@@ -879,6 +879,39 @@
   }
 
   /**
+   * Lấy text content từ element và các child elements
+   */
+  function getElementTextContent(element) {
+    if (!element) return '';
+
+    let text = '';
+
+    // Duyệt qua tất cả child nodes
+    for (const child of element.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        // Lấy text từ text node
+        const textContent = child.textContent.trim();
+        if (textContent) {
+          text += textContent + ' ';
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        // Recursively lấy text từ child elements
+        const childTagName = child.tagName.toLowerCase();
+
+        // Bỏ qua các elements không chứa text có ý nghĩa
+        if (!['script', 'style', 'noscript'].includes(childTagName)) {
+          const childText = getElementTextContent(child);
+          if (childText) {
+            text += childText + ' ';
+          }
+        }
+      }
+    }
+
+    return text.trim();
+  }
+
+  /**
    * Creates a node data object for a given node and its descendants.
    */
   function buildDomTree(node, parentIframe = null) {
@@ -975,6 +1008,7 @@
       attributes: {},
       xpath: getXPathTree(node, true),
       children: [],
+      textContent: '', // Thêm textContent để lưu text của element
     };
 
     // Get attributes for interactive elements or potential text containers
@@ -987,7 +1021,7 @@
 
     // if (isInteractiveCandidate(node)) {
 
-    // Check interactivity
+    // Check interactivity và tính toán các state
     if (node.nodeType === Node.ELEMENT_NODE) {
       nodeData.isVisible = isElementVisible(node);
       if (nodeData.isVisible) {
@@ -1062,6 +1096,9 @@
         }
       }
     }
+
+    // Lấy text content của element sau khi đã xử lý children
+    nodeData.textContent = getElementTextContent(node);
 
     // Skip empty anchor tags
     if (nodeData.tagName === 'a' && nodeData.children.length === 0 && !nodeData.attributes.href) {

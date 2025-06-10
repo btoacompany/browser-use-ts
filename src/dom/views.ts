@@ -128,6 +128,7 @@ export class DOMElementNode extends DOMBaseNode {
   viewportInfo: ViewportInfo | undefined;
   pageCoordinates: { x: number; y: number; width: number; height: number } | null;
   viewportCoordinates: { x: number; y: number; width: number; height: number } | null;
+  textContent: string;
 
   constructor(
     tag: string,
@@ -143,7 +144,8 @@ export class DOMElementNode extends DOMBaseNode {
     parent: DOMElementNode | null = null,
     viewportInfo?: ViewportInfo,
     pageCoordinates: { x: number; y: number; width: number; height: number } | null = null,
-    viewportCoordinates: { x: number; y: number; width: number; height: number } | null = null
+    viewportCoordinates: { x: number; y: number; width: number; height: number } | null = null,
+    textContent: string = ''
   ) {
     super(isVisible, parent);
     this.tagName = tag.toLowerCase();
@@ -158,6 +160,7 @@ export class DOMElementNode extends DOMBaseNode {
     this.viewportInfo = viewportInfo;
     this.pageCoordinates = pageCoordinates;
     this.viewportCoordinates = viewportCoordinates;
+    this.textContent = textContent;
   }
 
   /**
@@ -196,6 +199,7 @@ export class DOMElementNode extends DOMBaseNode {
     return this.isInteractive && this.isVisible && this.isTopElement && this.isInViewport;
   }
 
+
   /**
    * Check if the node is editable
    */
@@ -204,9 +208,9 @@ export class DOMElementNode extends DOMBaseNode {
     const contentEditable = this.attributes['contenteditable'] === 'true';
     return (editableTags.includes(this.tagName) || contentEditable) && this.isVisible;
   }
-  
 
-  
+
+
   /**
    * Get all text until the next clickable element
    * This is used in the clickableElementsToString method
@@ -215,17 +219,17 @@ export class DOMElementNode extends DOMBaseNode {
    */
   getAllTextTillNextClickableElement(maxDepth: number = -1): string {
     const textParts: string[] = [];
-    
+
     const collectText = (node: DOMBaseNode, currentDepth: number): void => {
       if (maxDepth !== -1 && currentDepth > maxDepth) {
         return;
       }
-      
+
       // Skip this branch if we hit a highlighted element (except for the current node)
       if (node instanceof DOMElementNode && node !== this && node.highlightIndex !== undefined) {
         return;
       }
-      
+
       if (node instanceof DOMTextNode) {
         textParts.push(node.text);
       } else if (node instanceof DOMElementNode) {
@@ -234,11 +238,11 @@ export class DOMElementNode extends DOMBaseNode {
         }
       }
     };
-    
+
     collectText(this, 0);
     return textParts.join('\n').trim();
   }
-  
+
   /**
    * Convert the DOM tree to a string representation of clickable elements
    * This exactly matches the Python implementation's clickable_elements_to_string method
@@ -247,7 +251,7 @@ export class DOMElementNode extends DOMBaseNode {
    */
   clickableElementsToString(includeAttributes: string[] | null = null): string {
     const formattedText: string[] = [];
-    
+
     const processNode = (node: DOMBaseNode, depth: number): void => {
       if (node instanceof DOMElementNode) {
         // Add element with highlight_index
@@ -255,7 +259,7 @@ export class DOMElementNode extends DOMBaseNode {
           let attributesStr = '';
           // Use get_all_text_till_next_clickable_element() to match Python exactly
           const text = node.getAllTextTillNextClickableElement();
-          
+
           if (includeAttributes) {
             // This exactly matches the Python implementation's attribute filtering logic
             const attributes = Array.from(
@@ -265,22 +269,22 @@ export class DOMElementNode extends DOMBaseNode {
                   .map(([_, value]) => String(value))
               )
             );
-            
+
             // Remove text from attributes if it matches to avoid duplication
             if (text && attributes.includes(text)) {
               attributes.splice(attributes.indexOf(text), 1);
             }
-            
+
             attributesStr = attributes.join(';');
           }
-          
+
           // Format the line exactly as in Python
           let line = `[${node.highlightIndex}]<${node.tagName} `;
-          
+
           if (attributesStr) {
             line += `${attributesStr}`;
           }
-          
+
           if (text) {
             if (attributesStr) {
               line += `>${text}`;
@@ -288,11 +292,11 @@ export class DOMElementNode extends DOMBaseNode {
               line += `${text}`;
             }
           }
-          
+
           line += '/>';
           formattedText.push(line);
         }
-        
+
         // Process children regardless
         for (const child of node.children) {
           processNode(child, depth + 1);
@@ -305,7 +309,7 @@ export class DOMElementNode extends DOMBaseNode {
         }
       }
     };
-    
+
     processNode(this, 0);
     return formattedText.join('\n');
   }
@@ -323,7 +327,7 @@ export class DOMElementNode extends DOMBaseNode {
       hasShadowRoot: this.hasShadowRoot,
       highlightIndex: this.highlightIndex,
       viewportInfo: this.viewportInfo?.toDict(),
-      textContent: this.getTextContent()
+      textContent: this.textContent
     };
   }
 }
@@ -382,7 +386,7 @@ export class DOMState {
   rootElement: DOMElementNode;
   selectorMap: SelectorMap;
   elementTree?: DOMElementNode;
-  
+
   constructor(rootElement: DOMElementNode, selectorMap: SelectorMap, elementTree?: DOMElementNode) {
     this.rootElement = rootElement;
     this.selectorMap = selectorMap;
@@ -393,7 +397,7 @@ export class DOMState {
       this.elementTree = rootElement;
     }
   }
-  
+
   toDict(): Record<string, any> {
     const result: Record<string, any> = {
       rootElement: this.rootElement.toDict(),
@@ -401,11 +405,11 @@ export class DOMState {
         Object.entries(this.selectorMap).map(([key, value]) => [key, value.toDict()])
       )
     };
-    
+
     if (this.elementTree !== undefined) {
       result['elementTree'] = this.elementTree;
     }
-    
+
     return result;
   }
 }

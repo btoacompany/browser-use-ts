@@ -45,6 +45,7 @@ export {
   SelectDropdownOptionAction,
   WaitAction,
   ScrollToTextAction,
+  ScrollInsideElementAction,
   GetDropdownOptionsAction
 } from './controller/views';
 

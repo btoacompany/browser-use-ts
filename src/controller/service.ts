@@ -22,6 +22,8 @@ import {
   WaitAction,
   ScrollToTextAction,
   GetDropdownOptionsAction,
+  ScrollInsideElementAction,
+  CheckElementVisibleAction,
 } from './views';
 
 const FIND_DROPDOWN_JS_CODE = `
@@ -97,10 +99,10 @@ export class Controller<Context = any> {
     try {
       // Extract the action name and parameters just like Python's model_dump
       const actionData = action && typeof action === 'object' ? action : {};
-      
+
       for (const actionName of Object.keys(actionData)) {
         const params = actionData[actionName];
-        
+
         if (params !== null && params !== undefined) {
           // Execute the action
           const result = await this.executeAction(
@@ -112,7 +114,7 @@ export class Controller<Context = any> {
             availableFilePaths,
             context
           );
-          
+
           // Match Python's type checking and return logic
           if (typeof result === 'string') {
             return new ActionResult({
@@ -163,7 +165,7 @@ export class Controller<Context = any> {
         error: 'Action name is required'
       });
     }
-    
+
     if (!this.registry || !this.registry.registry || !this.registry.registry.actions || !(actionName in this.registry.registry.actions)) {
       return new ActionResult({
         isDone: false,
@@ -177,7 +179,7 @@ export class Controller<Context = any> {
     try {
       // Get the action function directly from the registry
       const registeredAction = this.registry.registry.actions[actionName];
-      
+
       if (registeredAction && typeof registeredAction.function === 'function') {
         // Call the function with the context of 'this'
         return await registeredAction.function.call(this, params, { browser, pageExtractionLlm, sensitiveData, availableFilePaths, context });
@@ -197,7 +199,7 @@ export class Controller<Context = any> {
   }
 
   /**
-   * Python original implementation of act 
+   * Python original implementation of act
    */
   async act(
     action: any,
@@ -221,14 +223,14 @@ export class Controller<Context = any> {
           error: ''
         });
       }
-      
-      const actionData = typeof action.modelDump === 'function' 
-        ? action.modelDump({ excludeUnset: true }) 
+
+      const actionData = typeof action.modelDump === 'function'
+        ? action.modelDump({ excludeUnset: true })
         : (action && typeof action === 'object' ? action : {});
-      
+
       for (const actionName of Object.keys(actionData)) {
         const params = actionData[actionName];
-        
+
         if (params !== null && params !== undefined) {
           // Execute the action
           const result = await this.registry.executeAction(
@@ -240,7 +242,7 @@ export class Controller<Context = any> {
             availableFilePaths,
             context
           );
-          
+
           // Match Python's type checking and return logic
           if (typeof result === 'string') {
             return new ActionResult({
@@ -265,7 +267,7 @@ export class Controller<Context = any> {
           }
         }
       }
-      
+
       return new ActionResult({
         isDone: false,
         success: true,
@@ -319,7 +321,7 @@ export class Controller<Context = any> {
         value: async function(params: any): Promise<ActionResult> {
           // Convert the output model to a plain object
           const outputDict = params.data;
-          
+
           // Handle enums by converting them to string values
           for (const [key, value] of Object.entries(outputDict)) {
             if (value && typeof value === 'object' && 'value' in value) {
@@ -356,13 +358,13 @@ export class Controller<Context = any> {
         value: async function(params: any): Promise<ActionResult> {
           // In Python, Pydantic would validate that required fields exist
           // If fields are missing, it would raise a ValidationError
-          
+
           // Create a DoneAction instance with the validated params
           const doneAction = params instanceof DoneAction ? params : new DoneAction({
             text: params.text,
             success: params.success
           });
-          
+
           // Create our result, matching the Python implementation
           // In Python: return ActionResult(is_done=True, success=params.success, extracted_content=params.text)
           return new ActionResult({
@@ -379,8 +381,6 @@ export class Controller<Context = any> {
       }
     );
   }
-
-
 
   private registerBasicActions(): void {
     // Search Google action
@@ -421,7 +421,7 @@ export class Controller<Context = any> {
       {
         value: async function(params: GoToUrlAction, { browser }: { browser: ExtendedBrowserContext }): Promise<ActionResult> {
           const page = await browser.getCurrentPage();
-          
+
           console.info(`Navigating to ${params.url}...`);
           try {
             // Use more robust navigation options
@@ -429,17 +429,17 @@ export class Controller<Context = any> {
               waitUntil: 'domcontentloaded',
               timeout: 60000 // Increase timeout to 60 seconds
             });
-            
+
             // Wait for multiple load states to ensure page is fully loaded
             await page.waitForLoadState('domcontentloaded');
             await page.waitForLoadState('load');
-            
+
             // Additional wait to ensure the page is stable
             await page.waitForTimeout(2000);
-            
+
             const msg = `🔗 Successfully navigated to ${params.url}`;
             console.info(msg);
-            
+
             return new ActionResult({
               isDone: false,
               success: true,
@@ -449,7 +449,7 @@ export class Controller<Context = any> {
             });
           } catch (error) {
             console.error(`Navigation error: ${error}`);
-            
+
             // Even if there's an error, the page might still have loaded partially
             // So we'll return a failure with an informative message
             const errorMsg = `Navigation to ${params.url} may have encountered issues: ${error}`;
@@ -505,7 +505,7 @@ export class Controller<Context = any> {
         value: async function(params: WaitAction): Promise<ActionResult> {
           // Get seconds from params, default to 3 if not specified
           const seconds = params.seconds || 3;
-          
+
           const msg = `🕒 Waiting for ${seconds} seconds`;
           console.info(msg);
           await new Promise(resolve => setTimeout(resolve, seconds * 1000));
@@ -522,7 +522,7 @@ export class Controller<Context = any> {
         configurable: true
       }
     );
-    
+
     // Scroll to text action
     this.registry.action(
       'If you dont find something which you want to interact with, scroll to it',
@@ -535,7 +535,7 @@ export class Controller<Context = any> {
           try {
             // Get text directly from params
             const textToFind = params.text;
-                        
+
             // Match Python implementation exactly
             const page = await browser.getCurrentPage();
             // Try different locator strategies, just like Python implementation
@@ -544,7 +544,7 @@ export class Controller<Context = any> {
               page.locator(`text=${textToFind}`),
               page.locator(`//*[contains(text(), '${textToFind}')]`)
             ];
-            
+
             for (const locator of locators) {
               try {
                 // First check if element exists and is visible
@@ -565,7 +565,7 @@ export class Controller<Context = any> {
                 continue;
               }
             }
-            
+
             const msg = `Text '${textToFind}' not found or not visible on page`;
             console.info(msg);
             return new ActionResult({
@@ -595,7 +595,7 @@ export class Controller<Context = any> {
 
     // Click element action
     this.registry.action(
-      'Click element',
+      'Click element if it is clickable. Optional text parameter for validation - if provided, will check if element text matches (case insensitive)',
       ClickElementAction
     )(
       this,
@@ -606,27 +606,48 @@ export class Controller<Context = any> {
           if (params.index === undefined) {
             throw new Error('Failed to click element with index undefined');
           }
-                    
+
           const session = await browser.getSession();
-          
+
           if (session.cachedState) {
             if (session.cachedState.selectorMap) {
             }
           }
-          
+
           const selectorMap = await browser.getSelectorMap();
 
           // Convert the index to string to match how it's stored in the selector map
           const indexKey = params.index.toString();
-          
+
           if (!(indexKey in selectorMap)) {
-            throw new Error(`Element with index ${params.index} does not exist - retry or use alternative actions`);
+            const availableIndices = Object.keys(selectorMap).map(k => parseInt(k)).filter(n => !isNaN(n)).sort((a, b) => a - b);
+            const availableCount = availableIndices.length;
+            throw new Error(`Element with index ${params.index} does not exist. Only ${availableCount} elements available with indices: ${availableIndices.join(', ')}. Avoid random clicking - use scroll, extract_content, or check_element_visible to find target elements.`);
           }
-          
+
           // Get element descriptor directly from selector map using getDomElementByIndex
           // This matches Python implementation's approach exactly
           const elementNode = await browser.getDomElementByIndex(params.index);
-          
+
+          // Text validation if text parameter is provided
+          if (params.text !== undefined && params.text !== null && params.text.trim() !== '') {
+            const expectedText = params.text.toLowerCase().trim();
+            const elementText = elementNode.textContent.toLowerCase().trim();
+
+            // Check if element text exactly matches the expected text (case insensitive)
+            if (elementText !== expectedText) {
+              const errorMsg = `Text validation failed for element index ${params.index}. Expected: "${params.text}", found: "${elementNode.textContent}". Index ${params.index} is invalid for this action - avoid using this index again. Please retry with a different element.`;
+              console.warn(errorMsg);
+              return new ActionResult({
+                isDone: false,
+                success: false,
+                extractedContent: errorMsg,
+                includeInMemory: true,
+                error: ''
+              });
+            }
+          }
+
           // Get the initial page count safely
           // In the Python implementation, this is used to detect new tabs/windows after clicking
           let initialPages = 0;
@@ -656,11 +677,26 @@ export class Controller<Context = any> {
           let msg: string;
 
           try {
+            if (!elementNode.isClickable()) {
+              const msg = `Element with index ${params.index} is not clickable. Index ${params.index} is invalid for click action - avoid using this index for clicking. Consider checking if element is visible, scrolling to element, or looking for alternative clickable elements.`;
+              console.info(msg);
+              return new ActionResult({
+                isDone: false,
+                success: false,
+                extractedContent: msg,
+                includeInMemory: true,
+                error: ''
+              });
+            }
+
+            // console.log(`eleemnt is clickable ${params.index} ${elementNode.}`);
+
             const downloadPath = await browser._clickElementNode(elementNode);
             if (downloadPath) {
               msg = `💾 Downloaded file to ${downloadPath}`;
             } else {
-              msg = `🖱️ Clicked button with index ${params.index}: ${elementNode.getAllTextTillNextClickableElement(2)}`;
+              const textValidationMsg = params.text ? ` (text validated: "${params.text}")` : '';
+              msg = `🖱️ Clicked button with index ${params.index}: ${elementNode.getAllTextTillNextClickableElement(2)}${textValidationMsg}`;
             }
 
             console.info(msg);
@@ -674,7 +710,7 @@ export class Controller<Context = any> {
             } catch (e) {
               console.warn('Could not get current page count:', e);
             }
-            
+
             // only switch to new tab if there is no download
             if (currentPageCount > initialPages && !downloadPath) {
               const newTabMsg = 'New tab opened - switching to it';
@@ -700,7 +736,162 @@ export class Controller<Context = any> {
               isDone: false,
               success: false,
               error: String(e),
-              extractedContent: `Element not clickable: ${String(e)}`,
+              extractedContent: `Element with index ${params.index} not clickable: ${String(e)}. Index ${params.index} is invalid for click action - avoid using this index for clicking.`,
+              includeInMemory: true
+            });
+          }
+        },
+        writable: true,
+        enumerable: true,
+        configurable: true
+      }
+    );
+
+    // Scroll inside element action
+    this.registry.action(
+      'scroll inside an element (modal, dropdown, etc.)',
+      ScrollInsideElementAction
+    )(
+      this,
+      'scroll_inside_element',
+      {
+        value: async function(params: ScrollInsideElementAction, { browser }: { browser: ExtendedBrowserContext }): Promise<ActionResult> {
+          // Check if index is defined
+          if (params.index === undefined) {
+            throw new Error('Failed to scroll element with index undefined');
+          }
+
+          const selectorMap = await browser.getSelectorMap();
+
+          // Convert index to string to match how it's stored in the selector map
+          const indexKey = params.index.toString();
+
+          if (!(indexKey in selectorMap)) {
+            throw new Error(`Element with index ${params.index} does not exist - retry or use alternative actions`);
+          }
+
+          // Get element descriptor directly from selector map using getDomElementByIndex
+          const elementNode = await browser.getDomElementByIndex(params.index);
+
+          let msg: string;
+
+          try {
+            // Prepare scroll options from parameters
+            const scrollOptions: any = {};
+
+            if (params.deltaX !== undefined) scrollOptions.deltaX = params.deltaX;
+            if (params.deltaY !== undefined) scrollOptions.deltaY = params.deltaY;
+            if (params.toTop !== undefined) scrollOptions.toTop = params.toTop;
+            if (params.toBottom !== undefined) scrollOptions.toBottom = params.toBottom;
+            if (params.toLeft !== undefined) scrollOptions.toLeft = params.toLeft;
+            if (params.toRight !== undefined) scrollOptions.toRight = params.toRight;
+            if (params.percentX !== undefined) scrollOptions.percentX = params.percentX;
+            if (params.percentY !== undefined) scrollOptions.percentY = params.percentY;
+
+            // Perform scroll inside element
+            await browser.scrollInsideElement(elementNode, scrollOptions);
+
+            // Add delay after scroll to allow page to settle
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Build message based on scroll options used
+            let scrollDirection = '';
+            if (params.toTop) scrollDirection = 'to top';
+            else if (params.toBottom) scrollDirection = 'to bottom';
+            else if (params.toLeft) scrollDirection = 'to left';
+            else if (params.toRight) scrollDirection = 'to right';
+            else if (params.deltaY !== undefined) scrollDirection = `${params.deltaY > 0 ? 'down' : 'up'} ${Math.abs(params.deltaY)}px`;
+            else if (params.deltaX !== undefined) scrollDirection = `to ${params.deltaX > 0 ? 'right' : 'left'} ${Math.abs(params.deltaX)}px`;
+            else if (params.percentY !== undefined) scrollDirection = `to ${params.percentY}% vertical`;
+            else if (params.percentX !== undefined) scrollDirection = `to ${params.percentX}% horizontal`;
+            else scrollDirection = 'down';
+
+            msg = `🖱️ Scrolled ${scrollDirection} inside element with index ${params.index}: ${elementNode.getAllTextTillNextClickableElement ? elementNode.getAllTextTillNextClickableElement(2) : ''}`;
+
+            console.info(msg);
+
+            return new ActionResult({
+              isDone: false,
+              success: true,
+              extractedContent: msg,
+              includeInMemory: true,
+              error: ''
+            });
+          } catch (e) {
+            console.warn(`Cannot scroll inside element with index ${params.index} - page may have changed`);
+            console.trace(e);
+            return new ActionResult({
+              isDone: false,
+              success: false,
+              error: String(e),
+              extractedContent: `Cannot scroll inside element: ${String(e)}`,
+              includeInMemory: false
+            });
+          }
+        },
+        writable: true,
+        enumerable: true,
+        configurable: true
+      }
+    );
+
+    // Check element visible action
+    this.registry.action(
+      'Check if an element is visible, useful before clicking on it to ensure it can be clicked',
+      CheckElementVisibleAction
+    )(
+      this,
+      'check_element_visible',
+      {
+        value: async function(params: CheckElementVisibleAction, { browser }: { browser: ExtendedBrowserContext }): Promise<ActionResult> {
+          // Check if the index is defined
+          if (params.index === undefined) {
+            throw new Error('Failed to check element visibility with index undefined');
+          }
+
+          try {
+            // Get element descriptor from selector map
+            const elementNode = await browser.getDomElementByIndex(params.index);
+
+            // Get the element handle
+            const elementHandle = await browser.getLocateElement(elementNode);
+
+            if (!elementHandle) {
+              const msg = `❌ Element with index ${params.index} not found`;
+              console.info(msg);
+              return new ActionResult({
+                isDone: false,
+                success: false,
+                extractedContent: msg,
+                includeInMemory: true,
+                error: 'Element not found'
+              });
+            }
+
+            // Check if the element is visible
+            const isVisible = await elementHandle.isVisible();
+
+            const msg = isVisible
+              ? `✅ Element with index ${params.index} is visible`
+              : `❌ Element with index ${params.index} is not visible`;
+
+            console.info(msg);
+
+            return new ActionResult({
+              isDone: false,
+              success: true,
+              extractedContent: msg,
+              includeInMemory: true,
+              error: ''
+            });
+          } catch (e) {
+            const msg = `Error checking element visibility: ${String(e)}`;
+            console.error(msg);
+            return new ActionResult({
+              isDone: false,
+              success: false,
+              error: msg,
+              extractedContent: msg,
               includeInMemory: false
             });
           }
@@ -720,28 +911,28 @@ export class Controller<Context = any> {
       'input_text',
       {
         value: async function(
-          params: InputTextAction, 
+          params: InputTextAction,
           { browser, hasSensitiveData = false }: { browser: ExtendedBrowserContext, hasSensitiveData?: boolean }
         ): Promise<ActionResult> {
           // Check if the index is defined
           if (params.index === undefined) {
             throw new Error('Failed to input text into index undefined');
           }
-          
+
           // Get element descriptor directly from selector map using getDomElementByIndex
           // This matches Python implementation's approach exactly
           const elementNode = await browser.getDomElementByIndex(params.index);
           await browser._inputTextElementNode(elementNode, params.text);
-          
+
           let msg: string;
           if (!hasSensitiveData) {
             msg = `⌨️ Input ${params.text} into index ${params.index}`;
           } else {
             msg = `⌨️ Input sensitive data into index ${params.index}`;
           }
-          
+
           console.info(msg);
-          
+
           return new ActionResult({
             isDone: false,
             success: true,
@@ -822,14 +1013,14 @@ export class Controller<Context = any> {
         value: async function(params: any, { browser }: { browser: BrowserContext }): Promise<ActionResult> {
           const page = await browser.getCurrentPage();
           let amount: number | undefined;
-          
+
           // Handle both direct ScrollAction and object with empty properties
           if (params && typeof params === 'object') {
             if ('amount' in params && typeof params.amount === 'number') {
               amount = params.amount;
             }
           }
-          
+
           if (amount !== undefined) {
             await page.evaluate(`window.scrollBy(0, ${amount});`);
           } else {
@@ -839,7 +1030,7 @@ export class Controller<Context = any> {
           const amountText = amount !== undefined ? `${amount} pixels` : 'one page';
           const msg = `🔍 Scrolled down the page by ${amountText}`;
           console.info(msg);
-          
+
           return new ActionResult({
             isDone: false,
             success: true,
@@ -865,14 +1056,14 @@ export class Controller<Context = any> {
         value: async function(params: any, { browser }: { browser: BrowserContext }): Promise<ActionResult> {
           const page = await browser.getCurrentPage();
           let amount: number | undefined;
-          
+
           // Handle both direct ScrollAction and object with empty properties
           if (params && typeof params === 'object') {
             if ('amount' in params && typeof params.amount === 'number') {
               amount = params.amount;
             }
           }
-          
+
           if (amount !== undefined) {
             await page.evaluate(`window.scrollBy(0, -${amount});`);
           } else {
@@ -882,7 +1073,7 @@ export class Controller<Context = any> {
           const amountText = amount !== undefined ? `${amount} pixels` : 'one page';
           const msg = `🔍 Scrolled up the page by ${amountText}`;
           console.info(msg);
-          
+
           return new ActionResult({
             isDone: false,
             success: true,
@@ -927,7 +1118,7 @@ export class Controller<Context = any> {
 
           const msg = `⌨️ Sent keys: ${params.keys}`;
           console.info(msg);
-          
+
           return new ActionResult({
             isDone: false,
             success: true,
@@ -1014,7 +1205,7 @@ export class Controller<Context = any> {
 
             const msg = `Dropdown options for element ${params.index}:\n${allOptions.join('\n')}`;
             console.info(msg);
-            
+
             return new ActionResult({
               // isDone: true,
               isDone: false,
@@ -1026,7 +1217,7 @@ export class Controller<Context = any> {
           } catch (e) {
             const msg = `Error getting dropdown options: ${String(e)}`;
             console.error(msg);
-            
+
             return new ActionResult({
               isDone: false,
               success: false,
@@ -1055,10 +1246,10 @@ export class Controller<Context = any> {
           const page = await browser.getCurrentPage();
           // Get the page content first - exactly like Python does
           const pageContent = await page.content();
-          
+
           // Create turndown service (equivalent to Python's markdownify)
           const turndownService = new TurndownService();
-          
+
           // Remove script, style, and other non-content tags
           // This matches the behavior of Python's markdownify
           // The .remove() method ensures these tags and their contents are completely removed
@@ -1070,21 +1261,21 @@ export class Controller<Context = any> {
             "noscript",
             "img",
           ]);
-  
+
           // Remove link URLs, but keep the text
           turndownService.addRule("plainLink", {
             filter: "a",
-  
+
             replacement(content) {
               return content; // no Markdown URL, just the text
             },
           });
-          
+
           // Convert HTML to markdown
           const content = turndownService.turndown(pageContent);
           // Use the exact same prompt as Python
           const prompt = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page}';
-          
+
           try {
             // In Python, this uses a PromptTemplate with input_variables=['goal', 'page']
             // Create a similar structure in TypeScript
@@ -1092,10 +1283,10 @@ export class Controller<Context = any> {
               goal: goal,
               page: content
             };
-            
+
             // Format the prompt with the goal and content (similar to Python's template.format())
             const formattedPrompt = prompt.replace('{goal}', templateVars.goal).replace('{page}', templateVars.page);
-            
+
             // In TypeScript, the LLM.invoke method expects an array of message objects
             const messages = [
               {
@@ -1103,14 +1294,14 @@ export class Controller<Context = any> {
                 content: formattedPrompt
               }
             ];
-            
+
             // Invoke LLM with message array - equivalent to Python's page_extraction_llm.invoke(template.format(...))
             const output = await pageExtractionLlm.invoke(messages);
-            
+
             // Use exact same format for message
             const msg = `📄 Extracted from page\n: ${output.content}\n`;
             console.info(msg);
-            
+
             // Match Python implementation exactly:
             // return ActionResult(extracted_content=msg, include_in_memory=True)
             return new ActionResult({
@@ -1123,11 +1314,11 @@ export class Controller<Context = any> {
             // Match Python's error handling exactly
             // In Python: logger.debug(f'Error extracting content: {e}')
             console.debug(`Error extracting content: ${error}`);
-            
+
             // In Python: msg = f'📄 Extracted from page\n: {content}\n'
             const msg = `📄 Extracted from page\n: ${content}\n`;
             console.info(msg);
-            
+
             // Match Python implementation exactly:
             // return ActionResult(extracted_content=msg)
             // Note: Python doesn't include includeInMemory parameter in the error case

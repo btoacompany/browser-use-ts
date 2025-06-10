@@ -825,6 +825,7 @@ export class Agent<Context = any> {
       // In Python: if self.tool_calling_method == 'raw':
       if (this.toolCallingMethod === "raw") {
         // In Python: output = self.llm.invoke(input_messages)
+        // console.log(JSON.stringify(inputMessages, null, 2));
         const output = await this.llm.invoke(inputMessages);
 
         // In Python: output.content = self._remove_think_tags(str(output.content))
@@ -835,7 +836,9 @@ export class Agent<Context = any> {
           // In Python: parsed_json = extract_json_from_model_output(output.content)
           const parsedJson = extractJsonFromModelOutput(cleanedContent);
           // In Python: parsed = self.AgentOutput(**parsed_json)
+          
           parsed = new AgentOutput(parsedJson);
+          console.log(JSON.stringify(parsed, null, 2));
         } catch (e) {
           // In Python: logger.warning(f'Failed to parse model output: {output} {str(e)}')
           console.warn(
