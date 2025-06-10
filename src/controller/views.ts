@@ -5,7 +5,7 @@
 // Action Input Models
 export class SearchGoogleAction {
   query: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -17,7 +17,7 @@ export class SearchGoogleAction {
 
 export class GoToUrlAction {
   url: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -30,12 +30,14 @@ export class GoToUrlAction {
 export class ClickElementAction {
   index: number = 0;
   xpath?: string;
-  
+  text?: string;
+
   static schema() {
     return {
       properties: {
         index: { type: 'integer' },
-        xpath: { type: 'string', optional: true }
+        xpath: { type: 'string', optional: true },
+        text: { type: 'string', optional: true }
       }
     };
   }
@@ -45,7 +47,7 @@ export class InputTextAction {
   index: number = 0;
   text: string = '';
   xpath?: string;
-  
+
   static schema() {
     return {
       properties: {
@@ -58,7 +60,7 @@ export class InputTextAction {
 }
 
 /**
- * Action to complete a task 
+ * Action to complete a task
  */
 // Direct port of Python's DoneAction class
 // In Python: class DoneAction(BaseModel):
@@ -72,7 +74,7 @@ export class DoneAction {
     this.text = params.text;
     this.success = params.success;
   }
-  
+
   static schema() {
     return {
       properties: {
@@ -85,7 +87,7 @@ export class DoneAction {
 
 export class SwitchTabAction {
   pageId: number = 0;
-  
+
   static schema() {
     return {
       properties: {
@@ -97,7 +99,7 @@ export class SwitchTabAction {
 
 export class OpenTabAction {
   url: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -109,7 +111,7 @@ export class OpenTabAction {
 
 export class ScrollAction {
   amount?: number;
-  
+
   static schema() {
     return {
       properties: {
@@ -121,7 +123,7 @@ export class ScrollAction {
 
 export class SendKeysAction {
   keys: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -133,7 +135,7 @@ export class SendKeysAction {
 
 export class ExtractPageContentAction {
   value: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -155,7 +157,7 @@ export class NoParamsAction {
     //   # No matter what the user sends, discard it and return empty.
     //   return {}
   }
-  
+
   static schema() {
     return {
       properties: {}
@@ -169,7 +171,7 @@ export class NoParamsAction {
 export class SelectDropdownOptionAction {
   index: number = 0;
   text: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -185,7 +187,7 @@ export class SelectDropdownOptionAction {
  */
 export class WaitAction {
   seconds: number = 3;
-  
+
   static schema() {
     return {
       properties: {
@@ -200,7 +202,7 @@ export class WaitAction {
  */
 export class ScrollToTextAction {
   text: string = '';
-  
+
   static schema() {
     return {
       properties: {
@@ -215,11 +217,57 @@ export class ScrollToTextAction {
  */
 export class GetDropdownOptionsAction {
   index: number = 0;
-  
+
   static schema() {
     return {
       properties: {
         index: { type: 'integer' }
+      }
+    };
+  }
+}
+
+/**
+ * Action to check if an element is visible
+ */
+export class CheckElementVisibleAction {
+  index: number = 0;
+
+  static schema() {
+    return {
+      properties: {
+        index: { type: 'integer' }
+      }
+    };
+  }
+}
+
+/**
+ * Action to scroll inside an element
+ */
+export class ScrollInsideElementAction {
+  index: number = 0;
+  deltaX?: number;
+  deltaY?: number;
+  toTop?: boolean;
+  toBottom?: boolean;
+  toLeft?: boolean;
+  toRight?: boolean;
+  percentX?: number;
+  percentY?: number;
+
+  static schema() {
+    return {
+      properties: {
+        index: { type: 'integer' },
+        deltaX: { type: 'integer', optional: true },
+        deltaY: { type: 'integer', optional: true },
+        toTop: { type: 'boolean', optional: true },
+        toBottom: { type: 'boolean', optional: true },
+        toLeft: { type: 'boolean', optional: true },
+        toRight: { type: 'boolean', optional: true },
+        percentX: { type: 'integer', optional: true },
+        percentY: { type: 'integer', optional: true }
       }
     };
   }

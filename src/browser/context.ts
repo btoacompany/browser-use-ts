@@ -1095,7 +1095,17 @@ export class BrowserContext {
           xpath: elementNode.xpath
         })} not found`);
       }
+      await elementHandle.scrollIntoViewIfNeeded();
       
+      // raise error if element is not visible
+      if (!await elementHandle.isVisible()) {
+        throw new Error(`Element: ${JSON.stringify({
+          tagName: elementNode.tag_name,
+          xpath: elementNode.xpath
+        })} is not visible`);
+      }
+      const textContent = await elementHandle.textContent();
+      console.log(`element name: ${textContent} is visible==========`);
       
       // Define a perform_click function just like in the Python implementation
       const performClick = async (clickFunc: () => Promise<void>): Promise<string | null> => {        
@@ -1145,13 +1155,18 @@ export class BrowserContext {
         // return await performClick(() => elementHandle.click({ timeout: 1500 }));
 
         // CUSTOM IMPLEMENTATION USING DISPATCH EVENT
-        return await performClick(() => elementHandle.dispatchEvent('click'));
+        const box = await elementHandle.boundingBox();
+        if (!box) {
+          throw new Error('Element is not visible');
+        }
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        return null;
       } catch (standardError) {
         // If URL not allowed error, rethrow it
         if (standardError instanceof Error && standardError.message.includes('URL not allowed')) {
           throw standardError;
         }
-        
+
         // If standard clicks fail, try JavaScript click as fallback (Python approach)
         try {
           return await performClick(() => page.evaluate('(el) => el.click()', elementHandle));
@@ -1174,6 +1189,115 @@ export class BrowserContext {
       })}. Error: ${e}`);
     }
   }
+
+  /**
+   * Scroll on an element
+   * Scroll inside an element
+   */
+  async scrollInsideElement(element: any, options: {
+    deltaX?: number; // Scroll horizontally (pixel)
+    deltaY?: number; // Scroll vertically (pixel) 
+    toTop?: boolean; // Scroll to top of the element
+    toBottom?: boolean; // Scroll to bottom of the element
+    toLeft?: boolean; // Scroll to left of the element
+    toRight?: boolean; // Scroll to right of the element
+    percentX?: number; // Scroll horizontally by percentage (0-100)
+    percentY?: number; // Scroll vertically by percentage (0-100)
+  } = {}): Promise<void> {
+    try {
+      // Locate the element
+      const elementHandle = await this.getLocateElement(element);
+
+      if (!elementHandle) {
+        throw new Error(`Element not found for scrolling: ${JSON.stringify({
+          tagName: element.tag_name,
+          xpath: element.xpath
+        })}`);
+      }
+
+      // Perform scroll inside element using JavaScript
+      await elementHandle.evaluate((el: HTMLElement, opts: any) => {
+        // Check if element is scrollable
+        const isScrollable = (
+          el.scrollHeight > el.clientHeight || 
+          el.scrollWidth > el.clientWidth ||
+          window.getComputedStyle(el).overflow === 'scroll' ||
+          window.getComputedStyle(el).overflow === 'auto' ||
+          window.getComputedStyle(el).overflowY === 'scroll' ||
+          window.getComputedStyle(el).overflowY === 'auto' ||
+          window.getComputedStyle(el).overflowX === 'scroll' ||
+          window.getComputedStyle(el).overflowX === 'auto'
+        );
+
+        if (!isScrollable) {
+          console.warn('Element may not be scrollable');
+        }
+
+        // Scroll by deltaX/deltaY if specified
+        if (typeof opts.deltaX === 'number' || typeof opts.deltaY === 'number') {
+          el.scrollBy({
+            left: opts.deltaX || 0,
+            top: opts.deltaY || 0,
+            behavior: 'smooth'
+          });
+          return;
+        }
+
+        // Scroll to top of the element
+        if (opts.toTop) {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
+        // Scroll to bottom of the element
+        if (opts.toBottom) {
+          el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+          return;
+        }
+
+        // Scroll to left of the element
+        if (opts.toLeft) {
+          el.scrollTo({ left: 0, behavior: 'smooth' });
+          return;
+        }
+
+        // Scroll to right of the element
+        if (opts.toRight) {
+          el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+          return;
+        }
+
+        // Scroll horizontally by percentage
+        if (typeof opts.percentX === 'number') {
+          const maxScrollX = el.scrollWidth - el.clientWidth;
+          const targetX = Math.max(0, Math.min(maxScrollX, maxScrollX * (opts.percentX / 100)));
+          el.scrollTo({ left: targetX, behavior: 'smooth' });
+        }
+
+        // Scroll vertically by percentage
+        if (typeof opts.percentY === 'number') {
+          const maxScrollY = el.scrollHeight - el.clientHeight;
+          const targetY = Math.max(0, Math.min(maxScrollY, maxScrollY * (opts.percentY / 100)));
+          el.scrollTo({ top: targetY, behavior: 'smooth' });
+        }
+
+        // Default: scroll down a small distance if no options are specified
+        if (Object.keys(opts).length === 0) {
+          el.scrollBy({ top: 100, behavior: 'smooth' });
+        }
+      }, options);
+
+      // Wait for scroll to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error scrolling inside element:', error);
+      throw new Error(`Failed to scroll inside element: ${JSON.stringify({
+        tagName: element.tag_name,
+        xpath: element.xpath
+      })}. Error: ${error}`);
+    }
+  }  
+
 
   async getElementByXPath(xpath: string): Promise<any> {
     const page = await this.getCurrentPage();

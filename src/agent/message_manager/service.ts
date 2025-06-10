@@ -12,7 +12,7 @@ export class MessageManagerSettings {
   messageContext: string | null = null;
   sensitiveData: Record<string, string> | null = null;
   availableFilePaths: string[] | null = null;
-  
+
   /**
    * Constructor to initialize settings
    * This matches the Python implementation's parameter order
@@ -152,6 +152,22 @@ export class MessageManager {
       }
     }
 
+    console.log('state==============================');
+    if (state.selectorMap) {
+      // print li selectorMap in a readable way
+      Object.values(state.selectorMap).forEach((selector) => {
+        if (selector.tagName === 'li') {
+          console.log(JSON.stringify(selector, (key, value) => {
+            if (key === 'parent' || key === 'children') {
+              return '[Circular]';
+            }
+            return value;
+          }, 2));
+        }
+      });
+    }
+    console.log('state==============================');
+
     // otherwise add state message and result to next message (which will not stay in memory)
     const stateMessage = new AgentMessagePrompt(
       state,
@@ -197,7 +213,7 @@ export class MessageManager {
      * Get current message list, potentially trimmed to max tokens
      */
     const messages = this.state.history.messages.map((m) => m.message);
-    
+
     // Debug which messages are in history with token count
     let totalInputTokens = 0;
     for (const m of this.state.history.messages) {
@@ -223,7 +239,7 @@ export class MessageManager {
     metadata.tokens = tokenCount;
     this.state.history.addMessage(message, metadata, position);
   }
-  
+
   // Private alias for backward compatibility
   private _addMessageWithTokens(message: BaseMessage, position: number | null = null): void {
     this.addMessageWithTokens(message, position);
@@ -238,7 +254,7 @@ export class MessageManager {
     }
 
     let content = String(message.content);
-    
+
     // Replace sensitive data with placeholders
     for (const [placeholder, value] of Object.entries(this.settings.sensitiveData)) {
       if (value && content.includes(value)) {
@@ -263,7 +279,7 @@ export class MessageManager {
         tool_call_id: message.tool_call_id
       });
     }
-    
+
     return message;
   }
 
@@ -272,7 +288,7 @@ export class MessageManager {
      * Estimate token count for a message
      */
     let tokenCount = 0;
-    
+
     // Count tokens in content
     if (typeof message.content === 'string') {
       tokenCount += Math.ceil(message.content.length / this.settings.estimatedCharactersPerToken);
@@ -285,7 +301,7 @@ export class MessageManager {
         }
       }
     }
-    
+
     // Add tokens for tool calls if present
     if (message instanceof AIMessage && message.tool_calls) {
       for (const toolCall of message.tool_calls) {
@@ -297,7 +313,7 @@ export class MessageManager {
         }
       }
     }
-    
+
     return tokenCount;
   }
 
@@ -320,7 +336,7 @@ export class MessageManager {
     if (maxTokens === null) {
       maxTokens = this.settings.maxInputTokens;
     }
-    
+
     while (this.state.history.currentTokens > maxTokens) {
       this.state.history.removeOldestMessage();
     }
@@ -340,12 +356,12 @@ export class MessageManager {
     if (lastMessageIndex < 0) {
       return;
     }
-    
+
     const msgWrapper = this.state.history.messages[lastMessageIndex];
     if (!msgWrapper) {
       return;
     }
-    
+
     const msg = msgWrapper.message;
 
     // If content is a list with images, remove images first
@@ -366,7 +382,7 @@ export class MessageManager {
           }
         }
       }
-      
+
       // Convert to text-only if we removed all images
       if (msg.content.length === 0) {
         msg.content = text;
@@ -385,7 +401,7 @@ export class MessageManager {
     if (proportionToRemove > 0.99) {
       throw new Error(`Max token limit reached - history is too long - reduce the system prompt or task. proportion_to_remove: ${proportionToRemove}`);
     }
-    
+
     console.debug(`Removing ${proportionToRemove * 100}% of the last message (${proportionToRemove * msgWrapper.metadata.tokens} / ${msgWrapper.metadata.tokens} tokens)`);
 
     const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
@@ -410,7 +426,7 @@ export class MessageManager {
     // Find the last message that is a HumanMessage (state message)
     const messages = this.state.history.messages;
     if (!messages) return; // Guard against undefined messages
-    
+
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
       if (message && message.message instanceof HumanMessage) {

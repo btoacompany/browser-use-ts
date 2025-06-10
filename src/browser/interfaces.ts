@@ -22,6 +22,16 @@ export interface ExtendedBrowserContext extends BrowserContext {
   isFileUploader(element: any): Promise<boolean>;
   _clickElementNode(element: any): Promise<string | null>;
   _inputTextElementNode(element: any, text: string): Promise<void>;
+  scrollInsideElement(element: any, options: {
+    deltaX?: number;
+    deltaY?: number;
+    toTop?: boolean;
+    toBottom?: boolean;
+    toLeft?: boolean;
+    toRight?: boolean;
+    percentX?: number;
+    percentY?: number;
+  }): Promise<void>;
   
   // Tab management methods
   switchToTab(pageId: number): Promise<void>;
