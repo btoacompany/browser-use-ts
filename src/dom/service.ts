@@ -22,7 +22,7 @@ export class DOMService {
       // const jsPath = join(process.cwd(), 'src', 'dom', 'buildDomTree.js');
       const jsPath = join(
         process.cwd(),
-        // 'browser-use-ts',
+        'browser-use-ts',
         'src',
         'dom',
         'buildDomTree.js',
